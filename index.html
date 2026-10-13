@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Анкета участника</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=PT+Serif:wght@700&display=swap">
+<style>
+/* Бланк на один вопрос. Палитра задана здесь только для первого кадра: дальше скрипт сам
+   ведёт цвета от солнечного неба через закат и сливовые сумерки к почти чёрному с красным.
+   Одна сознательно выбранная тема, поэтому светлой и тёмной версий нет: тёмной становится сама анкета. */
+:root {
+  --bg: #8ed8ff;
+  --paper: #ffffff;
+  --ink: #0e1e30;
+  --ink2: #525d6a;
+  --line: #d8dbde;
+  --field: #ffffff;
+  --acc: #e0245e;
+  --on-acc: #ffffff;
+  --danger: #b01228;
+  --danger-bg: #960e24;
+  --chrome: #0e1e30;
+  --chrome2: #213a4f;
+  --track: #72afd1;
+  --f-display: 'PT Serif', Georgia, 'Times New Roman', serif;
+  --f-body: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+
+.app { min-height: 100%; display: flex; flex-direction: column; gap: 14px; max-width: 520px; margin-inline: auto; padding-block: 16px; padding-inline: 16px; }
+
+.top { display: grid; gap: 8px; }
+.formno { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--chrome2); }
+.progress { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+#bar { height: 100%; width: 0; background: var(--acc); transition: width .5s ease; }
+.progress.over #bar { background: var(--danger-bg); }
+.count { font-family: var(--f-mono); font-size: 12px; color: var(--chrome2); font-variant-numeric: tabular-nums; }
+.count.over { color: var(--danger-bg); font-weight: 500; }
+
+.sheet { flex: 1; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 22px 18px 18px; transition: transform .8s ease, border-color .5s; }
+body[data-phase="3"] .sheet { transform: rotate(-.3deg); }
+body[data-phase="4"] .sheet { transform: rotate(.7deg); border-color: var(--danger); }
+body[data-phase="5"] .sheet { transform: rotate(-1deg); border-color: var(--danger); border-width: 2px; }
+body[data-phase="4"] .formno, body[data-phase="5"] .formno { color: var(--danger-bg); }
+body[data-phase="5"] .formno { letter-spacing: .12em; font-weight: 500; animation: tremble .2s steps(2) infinite; }
+body[data-phase="5"] .q { text-shadow: 2px 0 color-mix(in srgb, var(--danger) 65%, transparent); }
+@keyframes tremble { 0% { transform: translateX(-1px); } 100% { transform: translateX(1px); } }
+
+.inner { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.enter { animation: enter .22s ease-out; }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.q { font-family: var(--f-display); font-weight: 700; font-size: 24px; line-height: 1.25; margin: 0 0 8px; text-wrap: balance; overflow-wrap: anywhere; }
+.q.big { font-size: 30px; }
+.hint { font-size: 14px; color: var(--ink2); margin: 0 0 18px; }
+.lead { margin: 0 0 8px; }
+
+.field { width: 100%; font: inherit; font-size: 16px; color: var(--ink); background: var(--field); border: 1.5px solid var(--line); border-radius: 8px; padding: 14px; min-height: 52px; }
+textarea.field { resize: vertical; min-height: 112px; }
+.field:focus-visible, .choice:focus-visible, .btn:focus-visible, input[type="range"]:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.field::placeholder { color: var(--ink2); opacity: .7; }
+
+.choices { display: grid; gap: 10px; }
+.choice { display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; font-size: 16px; color: var(--ink); background: var(--field); border: 1.5px solid var(--line); border-radius: 8px; padding: 13px 14px; min-height: 52px; cursor: pointer; }
+.choice .mark { flex: none; width: 18px; height: 18px; border: 1.5px solid var(--ink2); border-radius: 4px; }
+.choice[aria-checked="true"] { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 14%, var(--field)); }
+.choice[aria-checked="true"] .mark { background: var(--acc); border-color: var(--acc); }
+
+.range-out { font-family: var(--f-mono); font-size: 44px; font-weight: 500; font-variant-numeric: tabular-nums; margin: 4px 0 6px; }
+input[type="range"] { width: 100%; accent-color: var(--acc); height: 32px; }
+.ticks { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 12px; color: var(--ink2); }
+
+.err { font-family: var(--f-mono); font-size: 13px; color: var(--danger); margin: 10px 0 0; }
+
+.actions { margin-top: auto; padding-top: 22px; display: flex; gap: 10px; }
+.btn { font: inherit; font-size: 16px; font-weight: 600; min-height: 52px; padding: 13px 18px; border-radius: 8px; cursor: pointer; border: 1.5px solid var(--acc); background: var(--acc); color: var(--on-acc); flex: 1; }
+.btn.ghost { background: transparent; color: var(--ink2); border-color: var(--line); flex: none; }
+
+.note { border: 1px dashed var(--ink2); border-radius: 8px; padding: 10px 12px; margin: 0 0 18px; }
+.note b { display: block; font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); margin-bottom: 2px; }
+.note p { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+
+.foot { font-family: var(--f-mono); font-size: 11px; color: var(--chrome2); line-height: 1.5; }
+.foot p { margin: 0; }
+
+.stamp { align-self: flex-start; font-family: var(--f-mono); font-weight: 500; font-size: 20px; letter-spacing: .12em; text-transform: uppercase; color: var(--danger); border: 3px solid var(--danger); border-radius: 4px; padding: 6px 12px; transform: rotate(-6deg); margin: 2px 0 18px 4px; animation: stamp .35s cubic-bezier(.2, .8, .3, 1.2); }
+@keyframes stamp { from { opacity: 0; transform: rotate(-6deg) scale(1.7); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
+
+.sum { margin: 6px 0 18px; padding: 0; display: grid; }
+.sum div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.sum dt { font-family: var(--f-mono); font-size: 12px; color: var(--ink2); }
+.sum dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.sum-h { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); margin: 10px 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="formno" id="formno"></div>
+    <div class="progress" id="progress" aria-hidden="true"><div id="bar"></div></div>
+    <div class="count" id="count"></div>
+  </header>
+  <main class="sheet" id="stage" aria-live="polite"></main>
+  <footer class="foot"><p id="foot"></p></footer>
+</div>
+
+<script>
+(function () {
+  var SKIP = '— пропуск —';
+  var TOTAL = 15;
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); };
+
+  var now = new Date();
+  var todayISO = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  function age(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    var a = now.getFullYear() - d.getFullYear();
+    var m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+    return a;
+  }
+
+  /* ---------- настроение: цвета ведутся от t=0 (солнечно) до t=1 (темно и зло) ---------- */
+  var STOPS = {
+    bg:    [[0, '#8ed8ff'], [.33, '#ffa94d'], [.46, '#d9647a'], [.58, '#5a2150'], [.66, '#4a2145'], [1, '#0a0304']],
+    paper: [[0, '#ffffff'], [.33, '#fff3df'], [.48, '#ead7e8'], [.56, '#35203a'], [.66, '#2b1a2e'], [1, '#150a0c']],
+    acc:   [[0, '#e0245e'], [.33, '#c2410c'], [.66, '#ff5d73'], [1, '#e01e1e']]
+  };
+  function hex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  function toHex(c) { return '#' + c.map(function (v) { return Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0'); }).join(''); }
+  function mix(a, b, k) { return a.map(function (v, j) { return v + (b[j] - v) * k; }); }
+  function lum(c) {
+    var l = c.map(function (v) { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+    return .2126 * l[0] + .7152 * l[1] + .0722 * l[2];
+  }
+  function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+  function stop(key, t) {
+    var a = STOPS[key];
+    for (var j = 1; j < a.length; j++) {
+      if (t <= a[j][0]) { var p = a[j - 1], q = a[j]; return mix(hex(p[1]), hex(q[1]), (t - p[0]) / (q[0] - p[0])); }
+    }
+    return hex(a[a.length - 1][1]);
+  }
+  var DARK_INK = [14, 30, 48], LIGHT_INK = [246, 238, 238];
+  var REDS = [[176, 18, 40], [255, 122, 110], [120, 0, 20], [255, 190, 180]];
+  /* смягчает основной цвет к фону, пока контраст не опустился ниже нормы */
+  function fit(fg, base, onto, start) {
+    for (var k = start; k >= 0; k -= .04) { var c = mix(fg, base, k); if (contrast(c, onto) >= 4.5) return c; }
+    return fg;
+  }
+  function bestRed(onto) {
+    return REDS.reduce(function (a, b) { return contrast(b, onto) > contrast(a, onto) ? b : a; });
+  }
+  function applyMood(t) {
+    var bg = stop('bg', t), paper = stop('paper', t), acc = stop('acc', t);
+    var inkDark = contrast(paper, DARK_INK) >= contrast(paper, LIGHT_INK);
+    var ink = inkDark ? DARK_INK : LIGHT_INK;
+    var chrome = contrast(bg, DARK_INK) >= contrast(bg, LIGHT_INK) ? DARK_INK : LIGHT_INK;
+    var onAcc = contrast(acc, [255, 255, 255]) >= contrast(acc, [10, 6, 8]) ? [255, 255, 255] : [10, 6, 8];
+    var v = {
+      '--bg': bg,
+      '--paper': paper,
+      '--ink': ink,
+      '--ink2': fit(ink, paper, paper, .28),
+      '--line': mix(paper, ink, .16),
+      '--field': inkDark ? mix(paper, [255, 255, 255], .65) : mix(paper, [0, 0, 0], .4),
+      '--acc': acc,
+      '--on-acc': onAcc,
+      '--danger': contrast(bestRed(paper), paper) >= 4.5 ? bestRed(paper) : ink,
+      '--danger-bg': contrast(bestRed(bg), bg) >= 4.5 ? bestRed(bg) : chrome,
+      '--chrome': chrome,
+      '--chrome2': fit(chrome, bg, bg, .15),
+      '--track': mix(bg, chrome, .22)
+    };
+    var st = document.documentElement.style;
+    Object.keys(v).forEach(function (k) { st.setProperty(k, toHex(v[k])); });
+    st.colorScheme = inkDark ? 'light' : 'dark';
+  }
+
+  /* ---------- тексты по стадиям (5 стадий) ---------- */
+  function phaseOf(n) { return n <= 10 ? 1 : n <= 20 ? 2 : n <= 32 ? 3 : n <= 42 ? 4 : 5; }
+  var FORMNO = ['Форма № 7-А · Анкета участника', 'Форма № 7-А · Анкета участника (доп.)', 'Форма № 7-А · дополнение к дополнению', 'Форма № ?-? · Анкета кого-то', 'Форма № 0 · Отвечайте'];
+  var FOOT = ['Все поля обязательны. Ответы не покидают ваше устройство.', 'Всё идёт хорошо. Ответы не покидают устройство.', 'Ответы не покидают устройство. Мы проверяем.', 'Ответы не покидают устройство. Мы просто смотрим.', 'Ответы не покидают устройство. Отвечайте.'];
+  var EMPTY = ['Поле обязательно для заполнения.', 'Поле обязательно для заполнения.', 'Поле обязательно. Мы подождём.', 'Пустой ответ нас расстроит.', 'Пустое поле. Мы никуда не торопимся.'];
+  var NOTE_LABEL = ['Примечание', 'Примечание', 'Служебная пометка', 'Мы', 'МЫ'];
+  var BTN = ['Далее', 'Далее', 'Далее?', 'Хорошо', 'Отвечаю'];
+  var SKIP_LABEL = ['', '', 'Пропустить', 'Пропустить', 'Не буду'];
+  var SKIP_NOTE = ['', '', 'Пропуск зафиксирован. Это подозрительно.', 'Вы пропустили вопрос. Мы запомнили.', 'Отказ зафиксирован. Мы запомнили.'];
+
+  /* ---------- 50 вопросов ---------- */
+  var steps = [
+    /* 1-10: обычная анкета */
+    { k: 'fio', short: 'ФИО', type: 'text', label: 'ФИО полностью', hint: 'Как в паспорте.', ph: 'Иванов Иван Иванович', ac: 'name',
+      react: function (v) { var w = v.split(/\s+/); return w.length > 1 ? 'Здравствуйте, ' + w[1] + '.' : 'ФИО указано не полностью. Принято условно.'; } },
+    { k: 'dob', short: 'Дата рождения', type: 'date', label: 'Дата рождения', hint: 'День, месяц, год.',
+      check: function (v) { return (v > todayISO || v < '1900-01-01') ? 'Проверьте дату рождения.' : ''; },
+      react: function (v) { return 'Вам ' + age(v) + '. Запомнили.'; } },
+    { k: 'gender', short: 'Пол', type: 'choice', label: 'Пол', options: ['Мужской', 'Женский', 'Не хочу указывать'] },
+    { k: 'city', short: 'Город', type: 'text', label: 'Город проживания', ph: 'Например, Самара', ac: 'address-level2',
+      react: function (v) { return 'Город «' + v + '» занесён в реестр.'; } },
+    { k: 'phone', short: 'Телефон', type: 'tel', label: 'Номер телефона', hint: 'Нужен только для связи по анкете.', ph: '+7 900 000-00-00', ac: 'tel',
+      check: function (v) { return v.replace(/\D/g, '').length < 6 ? 'Укажите номер телефона полностью.' : ''; },
+      react: function () { return 'Номер записан. Звонить не будем. Скорее всего.'; } },
+    { k: 'email', short: 'Почта', type: 'email', label: 'Адрес электронной почты', hint: 'Мы не отправляем спам.', ph: 'name@example.com', ac: 'email',
+      check: function (v) { return /^\S+@\S+\.\S+$/.test(v) ? '' : 'Проверьте адрес почты.'; },
+      react: function () { return 'Адрес записан.'; } },
+    { k: 'work', short: 'Работа или учёба', type: 'text', label: 'Место работы или учёбы', ph: 'Где вы проводите будни', ac: 'organization' },
+    { k: 'edu', short: 'Образование', type: 'choice', label: 'Образование', options: ['Среднее', 'Среднее специальное', 'Высшее', 'Другое'] },
+    { k: 'family', short: 'Семейное положение', type: 'choice', label: 'Семейное положение', options: ['Не женат / не замужем', 'Женат / замужем', 'Всё сложно'],
+      react: function (v) { return v === 'Всё сложно' ? 'Понимаем.' : null; } },
+    { k: 'hobby', short: 'Хобби', type: 'text', label: 'Чем вы занимаетесь в свободное время?', ph: 'Например, рисую',
+      react: function (v) { return 'Хобби «' + v + '» одобрено.'; } },
+
+    /* 11-20: чуть странно */
+    { k: 'height', short: 'Рост', type: 'number', min: 30, max: 260, label: 'Рост, см', hint: 'Без обуви, если получится.', ph: '175' },
+    { k: 'cups', short: 'Чашек за вчера', type: 'number', min: 0, max: 99, label: 'Сколько чашек чая или кофе вы выпили вчера?', ph: '3',
+      react: function (v) { return Number(v) > 5 ? 'Многовато. Но мы не осуждаем.' : null; } },
+    { k: 'socks', short: 'Носки', type: 'text', label: 'Какого цвета ваши носки прямо сейчас?', hint: 'Если без носков, так и напишите.', ph: 'Серые',
+      react: function (v) { return 'Носки: «' + v + '». Принято.'; } },
+    { k: 'stairs', short: 'Лестница или лифт', type: 'choice', label: 'Вы чаще поднимаетесь по лестнице или едете на лифте?', options: ['По лестнице', 'На лифте', 'Зависит от настроения'] },
+    { k: 'sleep', short: 'Часов сна', type: 'number', min: 0, max: 24, label: 'Сколько часов вы спали этой ночью?', ph: '7',
+      react: function (v) { return Number(v) < 5 ? 'Это видно.' : Number(v) >= 10 ? 'Завидуем.' : null; } },
+    { k: 'battery', short: 'Заряд телефона', type: 'number', min: 0, max: 100, label: 'Сколько процентов заряда сейчас на вашем телефоне?', ph: '64',
+      react: function (v) { return Number(v) < 20 ? 'Подключите зарядку. Вы нам нужны живыми.' : null; } },
+    { k: 'breakfast', short: 'Завтрак', type: 'text', label: 'Что вы ели на завтрак?', hint: 'Если не ели, так и напишите.', ph: 'Опишите',
+      react: function () { return 'Записали. Продолжаем.'; } },
+    { k: 'tabs', short: 'Вкладок открыто', type: 'number', min: 0, max: 999, label: 'Сколько вкладок открыто у вас в браузере?', ph: '12',
+      react: function (v) { return Number(v) > 30 ? 'Вам нужна помощь. Мы не можем её оказать.' : null; } },
+    { k: 'shower', short: 'Душ сегодня', type: 'choice', label: 'Вы сегодня принимали душ?', options: ['Да', 'Нет', 'Скоро'],
+      react: function (v) { return v === 'Скоро' ? 'Мы подождём.' : null; } },
+    { k: 'wake', short: 'Подъём', type: 'time', label: 'Во сколько вы обычно просыпаетесь?',
+      react: function (v) { return v < '06:00' ? 'Вы ранняя птица. Или не ложились.' : null; } },
+
+    /* 21-32: странно */
+    { k: 'toilet', short: 'Туалет утром', type: 'choice', label: 'Вы сегодня утром ходили в туалет?', hint: 'Это нужно для статистики.', options: ['Да', 'Нет', 'Не помню', 'Это личное'],
+      react: function (v) { return ({ 'Да': 'Отлично. Это важно.', 'Нет': 'Понятно. Продолжаем.', 'Не помню': 'Запишем как «возможно».', 'Это личное': 'Всё в этой анкете личное.' })[v] || null; } },
+    { k: 'toilet2', short: 'Утро: подробности', type: 'text',
+      label: function (a) { return a.toilet === 'Да' ? 'Во сколько примерно? Можно с точностью до минуты.' : a.toilet === 'Нет' ? 'Почему нет? Опишите своими словами.' : 'Тогда расскажите, чем вы занимались утром вместо этого.'; },
+      hint: 'Мы сверим с остальными ответами.', ph: 'Напишите здесь', react: function () { return 'Сверим.'; } },
+    { k: 'smell', short: 'Запах', type: 'range', label: 'От 0 до 10: насколько приятно вы сейчас пахнете?', hint: 'Оценивайте честно. Мы почувствуем.',
+      react: function (v) { v = Number(v); return v >= 8 ? 'Уверенность в себе отмечена.' : v <= 3 ? 'Мы вам верим.' : null; } },
+    { k: 'fridge', short: 'Имя холодильника', type: 'text', label: 'Как вы про себя называете свой холодильник?', hint: 'Имя есть у всех. Вы не исключение.', ph: 'Например, Гена',
+      react: function (v) { return '«' + v + '». Хорошее имя. Холодильник в курсе.'; } },
+    { k: 'blinks', short: 'Морганий', type: 'number', min: 0, max: 999, label: 'Сколько раз вы моргнули, пока читали предыдущий вопрос?', ph: '0',
+      react: function (v) { return Number(v) < 5 ? 'Слишком быстро читаете.' : null; } },
+    { k: 'lie', short: 'Последняя ложь', type: 'textarea', label: 'Опишите последнее, о чём вы соврали.', hint: 'Можно без подробностей. С подробностями лучше.', ph: 'Напишите здесь',
+      react: function () { return 'Спасибо за откровенность. Правда.'; } },
+    { k: 'pigeons', short: 'Голуби', type: 'choice', label: 'Как вы относитесь к голубям?', options: ['Нейтрально', 'Боюсь', 'Они мои друзья', 'Они знают'],
+      react: function (v) { return v === 'Они знают' ? 'Тише.' : v === 'Боюсь' ? 'Это нормально. Они чувствуют.' : null; } },
+    { k: 'spoon', short: 'Любимая ложка', type: 'choice', label: 'У вас есть любимая ложка?', options: ['Да', 'Нет', 'Не признаюсь'],
+      react: function (v) { return v === 'Да' ? 'Она знает.' : v === 'Не признаюсь' ? 'Это тоже ответ.' : null; } },
+    { k: 'selftalk', short: 'Разговор с собой', type: 'textarea', label: 'Когда вы в последний раз разговаривали сами с собой вслух? О чём?', ph: 'Напишите здесь',
+      react: function () { return 'Вы себе ответили? Мы запишем и это.'; } },
+    { k: 'toes', short: 'Пальцев на левой ноге', type: 'number', min: 0, max: 20, label: 'Сколько пальцев у вас на левой ноге? Посчитайте. Мы подождём.', ph: '5',
+      react: function (v) { return Number(v) === 5 ? 'Верно. Пока.' : 'Интересно.'; } },
+    { k: 'dislike', short: 'Неприятный человек', type: 'text', label: 'Назовите одного человека, который вам не нравится.', hint: 'Можно только инициалы.', ph: 'Инициалы',
+      react: function () { return 'Записано. Мы приглядим.'; } },
+    { k: 'dream', short: 'Сон', type: 'textarea', label: 'Что вам снилось сегодня?', hint: 'Если ничего, значит, вы что-то скрываете.', ph: 'Напишите здесь',
+      react: function () { return 'Мы там тоже были.'; } },
+
+    /* 33-42: жутковато */
+    { k: 'eaten', short: 'Вкус', type: 'text', label: 'Если бы вас съели, какой вкус у вас был бы?', ph: 'Опишите', react: function () { return 'Информация передана кому следует.'; } },
+    { k: 'sneeze', short: 'Чихание', type: 'textarea', label: 'Опишите звук вашего чихания. Желательно буквами.', ph: 'Апч…', react: function () { return 'Звучит убедительно.'; } },
+    { k: 'right', short: 'Справа', type: 'choice', label: 'Медленно посмотрите направо. Там кто-то есть?', options: ['Да', 'Нет', 'Только что был'],
+      react: function (v) { return v === 'Да' ? 'Не оборачивайтесь больше.' : v === 'Нет' ? 'Хорошо. Пока.' : 'Мы так и думали.'; } },
+    { k: 'sure', short: 'Это вы?', type: 'choice', label: 'Вы уверены, что вы — это вы?', options: ['Да, абсолютно', 'Утром был(а) уверен(а)', 'Нет'],
+      react: function (v) { return v === 'Нет' ? 'Это многое объясняет.' : null; } },
+    { k: 'word', short: 'Первое слово', type: 'text', label: 'Напишите первое слово, которое пришло в голову. Мы всё равно уже знаем.', ph: 'Слово',
+      react: function (v) { return '«' + v + '». Да, мы так и думали.'; } },
+    { k: 'upstairs', short: 'Шаги наверху', type: 'choice', label: 'Вы слышите, как кто-то ходит наверху?', options: ['Да', 'Нет', 'Теперь да'],
+      react: function (v) { return v === 'Теперь да' ? 'Не отвлекайтесь.' : null; } },
+    { k: 'door', short: 'Дверь', type: 'choice', label: 'Дверь в вашей комнате закрыта? Не вставайте. Просто ответьте.', options: ['Закрыта', 'Открыта', 'Не знаю'],
+      react: function (v) { return v === 'Не знаю' ? 'Теперь вы будете об этом думать.' : null; } },
+    { k: 'realname', short: 'Настоящее имя', type: 'text', label: 'Как вас зовут на самом деле?', ph: 'Имя',
+      react: function () { return 'Мы проверим.'; } },
+    { k: 'realage', short: 'Настоящий возраст', type: 'number', min: 0, max: 999, label: 'Сколько вам лет на самом деле?', ph: '0',
+      react: function () { return 'Принято. Мы сомневаемся.'; } },
+    { k: 'room', short: 'Людей в комнате', type: 'number', min: 0, max: 99, label: 'Сколько людей находится в комнате с вами? Не считая вас.', ph: '0',
+      react: function (v) { return Number(v) === 0 ? 'Вы уверены? Посмотрите ещё раз.' : 'Передайте им привет.'; } },
+
+    /* 43-50: злая анкета */
+    { k: 'slow', short: 'Почему долго', type: 'textarea', label: 'Почему вы так долго отвечаете?', ph: 'Объясните', react: function () { return 'Это не оправдание.'; } },
+    { k: 'tired', short: 'Усталость', type: 'choice', label: 'Вы устали?', options: ['Да', 'Нет', 'Да, пожалуйста, хватит'],
+      react: function (v) { return v === 'Да' ? 'Мы тоже. Продолжаем.' : v === 'Нет' ? 'Зря.' : 'Нет.'; } },
+    { k: 'clock', short: 'Который час', type: 'time', label: 'Который сейчас час? Не смотрите на часы. Назовите на глаз.',
+      react: function () { return 'Мы знаем точное время.'; } },
+    { k: 'lies', short: 'Обманов в анкете', type: 'number', min: 0, max: 50, label: 'Сколько раз вы нас обманули за эту анкету? Честно.', ph: '0',
+      react: function (v) { return Number(v) === 0 ? 'Врёте.' : 'Мы насчитали больше.'; } },
+    { k: 'sorry', short: 'Извинение', type: 'textarea', label: 'Извинитесь перед анкетой. Словами.', ph: 'Извините', react: function () { return 'Извинения не приняты. Но записаны.'; } },
+    { k: 'leave', short: 'Закроете страницу?', type: 'choice', label: 'Вы собираетесь закрыть эту страницу?', options: ['Да', 'Нет', 'Не получится'],
+      react: function (v) { return v === 'Да' ? 'Попробуйте.' : v === 'Нет' ? 'Правильно.' : 'Верно.'; } },
+    { k: 'guess', short: 'Число', type: 'number', min: 1, max: 100, label: 'Назовите число от 1 до 100. Мы своё уже выбрали.', ph: '42',
+      react: function () { return 'Угадали? Нет. Или да.'; } },
+    { k: 'love', short: 'Любовь к анкете', type: 'choice', label: 'Последний вопрос. Вы нас любите?', options: ['Да', 'Нет', 'Мне всё равно, это анкета'] }
+  ];
+
+  var i = -1, answers = {}, note = null, chosen = null;
+  var stage = $('#stage');
+
+  function txt(x) { return typeof x === 'function' ? x(answers) : x; }
+
+  function countText(p, n) {
+    if (n === 0) return 'Вопросов: ' + TOTAL;
+    if (n === steps.length) return 'Вопрос ' + n + ' из ' + TOTAL + '. Последний.';
+    return 'Вопрос ' + n + ' из ' + (p === 4 ? '∞' : TOTAL);
+  }
+
+  function chrome(phase, n) {
+    applyMood(n <= 0 ? 0 : (n - 1) / (steps.length - 1));
+    document.body.dataset.phase = phase;
+    $('#formno').textContent = FORMNO[phase - 1];
+    $('#foot').textContent = FOOT[phase - 1];
+    var over = n > TOTAL;
+    $('#progress').classList.toggle('over', over);
+    var c = $('#count');
+    c.classList.toggle('over', over);
+    c.textContent = countText(phase, n);
+    var w = n <= TOTAL ? n / TOTAL * 100 : Math.max(5, 100 - (n - TOTAL) * (95 / (steps.length - TOTAL)));
+    $('#bar').style.width = w + '%';
+  }
+
+  function renderIntro() {
+    i = -1; answers = {}; note = null; chosen = null;
+    chrome(1, 0);
+    stage.innerHTML =
+      '<div class="inner enter">' +
+        '<h1 class="q big">Анкета участника</h1>' +
+        '<p class="lead">Здравствуйте! Это короткий опрос для регистрации. Он займёт около трёх минут.</p>' +
+        '<p class="hint">Отвечайте честно и не торопитесь.</p>' +
+        '<div class="actions"><button class="btn" id="start" type="button">Начать</button></div>' +
+      '</div>';
+    $('#start').addEventListener('click', function () { i = 0; render(); });
+    window.scrollTo(0, 0);
+  }
+
+  function fieldHTML(s) {
+    var common = ' id="f" name="f" aria-labelledby="q"';
+    if (s.type === 'choice') {
+      return '<div class="choices" role="radiogroup" aria-labelledby="q">' + s.options.map(function (o) {
+        return '<button type="button" class="choice" role="radio" aria-checked="false" data-v="' + esc(o) + '"><span class="mark" aria-hidden="true"></span><span>' + esc(o) + '</span></button>';
+      }).join('') + '</div>';
+    }
+    if (s.type === 'textarea') return '<textarea class="field"' + common + ' rows="4" placeholder="' + esc(s.ph || '') + '" autocomplete="off"></textarea>';
+    if (s.type === 'range') return '<div class="range-out" id="out" aria-live="off">5</div><input type="range"' + common + ' min="0" max="10" step="1" value="5"><div class="ticks"><span>0</span><span>10</span></div>';
+    var extra = '';
+    if (s.type === 'number') extra = ' inputmode="numeric" min="' + s.min + '" max="' + s.max + '"';
+    if (s.type === 'date') extra = ' max="' + todayISO + '" min="1900-01-01"';
+    return '<input class="field"' + common + ' type="' + s.type + '"' + extra + ' placeholder="' + esc(s.ph || '') + '" autocomplete="' + (s.ac || 'off') + '">';
+  }
+
+  function render() {
+    var s = steps[i], n = i + 1, p = phaseOf(n);
+    chosen = null;
+    chrome(p, n);
+    var last = i === steps.length - 1;
+    var skipBtn = p >= 3 && !last ? '<button type="button" class="btn ghost" id="skip">' + SKIP_LABEL[p - 1] + '</button>' : '';
+    var noteHTML = note ? '<aside class="note"><b>' + NOTE_LABEL[p - 1] + '</b><p>' + esc(note) + '</p></aside>' : '';
+    stage.innerHTML =
+      '<form class="inner enter" id="form" novalidate>' +
+        noteHTML +
+        '<h1 class="q" id="q">' + esc(txt(s.label)) + '</h1>' +
+        (s.hint ? '<p class="hint">' + esc(s.hint) + '</p>' : '<p class="hint" hidden></p>') +
+        fieldHTML(s) +
+        '<p class="err" id="err" role="alert" hidden></p>' +
+        '<div class="actions">' + skipBtn + '<button type="submit" class="btn">' + (last ? 'Отправить' : BTN[p - 1]) + '</button></div>' +
+      '</form>';
+    note = null;
+
+    var form = $('#form');
+    form.addEventListener('submit', function (e) { e.preventDefault(); next(false); });
+    var sk = $('#skip');
+    if (sk) sk.addEventListener('click', function () { next(true); });
+
+    if (s.type === 'choice') {
+      form.querySelectorAll('.choice').forEach(function (b) {
+        b.addEventListener('click', function () {
+          chosen = b.getAttribute('data-v');
+          form.querySelectorAll('.choice').forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+          $('#err').hidden = true;
+        });
+      });
+    } else if (s.type === 'range') {
+      $('#f').addEventListener('input', function (e) { $('#out').textContent = e.target.value; });
+    } else if (s.type !== 'date' && s.type !== 'time') {
+      try { $('#f').focus({ preventScroll: true }); } catch (e) { }
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function getValue(s) {
+    if (s.type === 'choice') return chosen || '';
+    return $('#f').value.trim();
+  }
+
+  function validate(s, v, p) {
+    if (s.type === 'range') return '';
+    if (!v) return EMPTY[p - 1];
+    if (s.type === 'number') {
+      var x = Number(v);
+      if (!isFinite(x) || x < s.min || x > s.max) return 'Введите число от ' + s.min + ' до ' + s.max + '.';
+    }
+    return s.check ? s.check(v) : '';
+  }
+
+  function next(skipped) {
+    var s = steps[i], p = phaseOf(i + 1);
+    var v = getValue(s);
+    if (!skipped) {
+      var msg = validate(s, v, p);
+      if (msg) { var e = $('#err'); e.textContent = msg; e.hidden = false; return; }
+    }
+    answers[s.k] = skipped ? SKIP : v;
+    note = skipped ? SKIP_NOTE[p - 1] : (s.react ? s.react(v) : null);
+    if (i === steps.length - 1) { finish(); return; }
+    i++;
+    render();
+  }
+
+  function firstName() {
+    var w = (answers.fio && answers.fio !== SKIP ? answers.fio : '').split(/\s+/).filter(Boolean);
+    return w[1] || w[0] || '';
+  }
+
+  function finish() {
+    chrome(1, 0);
+    $('#count').textContent = 'Анкета закрыта';
+    $('#bar').style.width = '100%';
+    $('#formno').textContent = 'Форма № 7-А · Копия';
+    $('#foot').textContent = 'Ответы не покидали устройство.';
+    var name = firstName();
+    var rows = steps.map(function (s) {
+      var v = answers[s.k];
+      if (v === undefined) return '';
+      if (s.type === 'range' && v !== SKIP) v = v + ' из 10';
+      return '<div><dt>' + esc(s.short) + '</dt><dd>' + esc(v) + '</dd></div>';
+    }).join('');
+    stage.innerHTML =
+      '<div class="inner enter">' +
+        '<div class="stamp">Принято</div>' +
+        '<h1 class="q">Анкета принята' + (name ? ', ' + esc(name) : '') + '.</h1>' +
+        '<p class="lead">Ваши ответы внимательно изучены.</p>' +
+        '<aside class="note"><b>Примечание</b><p>Это была шутка. Ничего никуда не отправлялось: ответы остались на этом экране и исчезнут, когда вы закроете страницу.</p></aside>' +
+        '<p class="sum-h">Копия для вашего архива</p>' +
+        '<dl class="sum">' + rows + '</dl>' +
+        '<div class="actions"><button class="btn" id="again" type="button">Пройти заново</button></div>' +
+      '</div>';
+    $('#again').addEventListener('click', renderIntro);
+    window.scrollTo(0, 0);
+  }
+
+  renderIntro();
+})();
+</script>
+
+</body>
+</html>
